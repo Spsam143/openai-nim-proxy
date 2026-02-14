@@ -25,11 +25,10 @@ const MODEL_MAPPING = {
   'gpt-3.5-turbo': 'nvidia/llama-3.1-nemotron-ultra-253b-v1',
   'gpt-4': 'qwen/qwen3-coder-480b-a35b-instruct',
   'gpt-4-turbo': 'moonshotai/kimi-k2-instruct-0905',
-  'gpt-4o': 'deepseek-ai/deepseek-v3.1',
+  'gpt-4o': 'z-ai/glm5',
   'claude-3-opus': 'openai/gpt-oss-120b',
   'claude-3-sonnet': 'openai/gpt-oss-20b',
   'gemini-pro': 'qwen/qwen3-next-80b-a3b-thinking'
-  'gpt-4o': 'z-ai/glm5',
 };
 
 // Health check endpoint
@@ -119,12 +118,12 @@ app.post('/v1/chat/completions', async (req, res) => {
       let reasoningStarted = false;
       response.data.on('data', (chunk) => {
         buffer += chunk.toString();
-        const lines = buffer.split('\\n');
+        const lines = buffer.split('\n');
         buffer = lines.pop() || '';
         lines.forEach(line => {
           if (line.startsWith('data: ')) {
             if (line.includes('[DONE]')) {
-              res.write(line + '\\n');
+              res.write(line + '\n');
               return;
             }
             
@@ -138,14 +137,14 @@ app.post('/v1/chat/completions', async (req, res) => {
                   let combinedContent = '';
                   
                   if (reasoning && !reasoningStarted) {
-                    combinedContent = '\\n' + reasoning;
+                    combinedContent = '\n' + reasoning;
                     reasoningStarted = true;
                   } else if (reasoning) {
                     combinedContent = reasoning;
                   }
                   
                   if (content && reasoningStarted) {
-                    combinedContent += '\\n\\n' + content;
+                    combinedContent += '\n\n' + content;
                     reasoningStarted = false;
                   } else if (content) {
                     combinedContent += content;
@@ -164,9 +163,9 @@ app.post('/v1/chat/completions', async (req, res) => {
                   delete data.choices[0].delta.reasoning_content;
                 }
               }
-              res.write(`data: ${JSON.stringify(data)}\\n\\n`);
+              res.write(`data: ${JSON.stringify(data)}\n\n`);
             } catch (e) {
-              res.write(line + '\\n');
+              res.write(line + '\n');
             }
           }
         });
@@ -187,7 +186,7 @@ app.post('/v1/chat/completions', async (req, res) => {
           let fullContent = choice.message?.content || '';
           
           if (SHOW_REASONING && choice.message?.reasoning_content) {
-            fullContent = '\\n' + choice.message.reasoning_content + '\\n\\n\\n' + fullContent;
+            fullContent = '\n' + choice.message.reasoning_content + '\n\n\n' + fullContent;
           }
           
           return {
