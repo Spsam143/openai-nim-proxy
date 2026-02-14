@@ -14,10 +14,10 @@ app.use(express.json());
 const NIM_API_BASE = process.env.NIM_API_BASE || 'https://integrate.api.nvidia.com/v1';
 const NIM_API_KEY = process.env.NIM_API_KEY;
 
-// 🔥 REASONING DISPLAY TOGGLE - Shows/hides reasoning in output
+// REASONING DISPLAY TOGGLE - Shows/hides reasoning in output
 const SHOW_REASONING = false; // Set to true to show reasoning with tags
 
-// 🔥 THINKING MODE TOGGLE - Enables thinking for specific models that support it
+// THINKING MODE TOGGLE - Enables thinking for specific models that support it
 const ENABLE_THINKING_MODE = false; // Set to true to enable chat_template_kwargs thinking parameter
 
 // Model mapping (adjust based on available NIM models)
@@ -29,8 +29,7 @@ const MODEL_MAPPING = {
   'claude-3-opus': 'openai/gpt-oss-120b',
   'claude-3-sonnet': 'openai/gpt-oss-20b',
   'gemini-pro': 'qwen/qwen3-next-80b-a3b-thinking'
-'gpt-4o': 'z-ai/glm5',  // 👈 OR USE THIS (even better quality)
-  // rest of your models...
+  'gpt-4o': 'z-ai/glm5',
 };
 
 // Health check endpoint
