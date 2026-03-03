@@ -28,13 +28,13 @@ const ENABLE_THINKING_MODE = false; // Set to true to enable chat_template_kwarg
 
 // Model mapping (adjust based on available NIM models)
 const MODEL_MAPPING = {
-  'gpt-3.5-turbo': 'deepseek-ai/deepseek-v3-0324',      // Best RP quality
-  'gpt-4':         'moonshotai/kimi-k2-instruct-0905',   // Best uncensored
-  'gpt-4-turbo':   'deepseek-ai/deepseek-r1-0528',       // Best reasoning RP
-  'gpt-4o':        'deepseek-ai/deepseek-v3-0324',       // Your main slot
-  'claude-3-opus': 'qwen/qwen3-235b-a22b',               // Long context backup
-  'claude-3-sonnet':'z-ai/glm5',                         // Keep GLM-5 as backup
-  'gemini-pro':    'moonshotai/kimi-k2-instruct-0905'    // Alt uncensored
+  'gpt-3.5-turbo': 'deepseek-ai/deepseek-v3-0324',
+  'gpt-4':         'moonshotai/kimi-k2-instruct-0905',
+  'gpt-4-turbo':   'deepseek-ai/deepseek-r1-0528',
+  'gpt-4o':        'z-ai/glm-4-9b-chat',      // ← corrected GLM-5 ID
+  'claude-3-opus': 'nvidia/llama-3.1-nemotron-ultra-253b-v1',
+  'claude-3-sonnet':'deepseek-ai/deepseek-v3-0324',
+  'gemini-pro':    'moonshotai/kimi-k2-instruct-0905'
 };
 
 // Health check endpoint
