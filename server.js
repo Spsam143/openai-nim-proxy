@@ -27,8 +27,8 @@ const SHOW_REASONING = false; // Set to true to show reasoning with tags
 const ENABLE_THINKING_MODE = false; // Set to true to enable chat_template_kwargs thinking parameter
 
 // Model mapping (adjust based on available NIM models)
+// Model mapping (adjust based on available NIM models)
 const MODEL_MAPPING = {
-  const MODEL_MAPPING = {
   'gpt-4o':           'deepseek-ai/deepseek-v3-1',
   'gpt-4':            'deepseek-ai/deepseek-r1',
   'gpt-4-turbo':      'deepseek-ai/deepseek-v3-1-instruct',
