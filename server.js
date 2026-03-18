@@ -12,8 +12,8 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 const NIM_API_BASE = process.env.NIM_API_BASE || 'https://integrate.api.nvidia.com/v1';
 const NIM_API_KEY = process.env.NIM_API_KEY;
 
-const SHOW_REASONING = false;
-const ENABLE_THINKING_MODE = true;
+const SHOW_REASONING = true;
+const ENABLE_THINKING_MODE = false;
 
 const MODEL_MAPPING = {
   'gpt-4o':           'deepseek-ai/deepseek-v3-1',
