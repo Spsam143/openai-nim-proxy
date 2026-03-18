@@ -41,7 +41,6 @@ app.get('/v1/models', (req, res) => {
 app.post('/v1/chat/completions', async (req, res) => {
   try {
     const { model, messages, temperature, max_tokens, stream } = req.body;
-
     let nimModel = MODEL_MAPPING[model] || model;
 
     const nimRequest = {
@@ -67,42 +66,75 @@ app.post('/v1/chat/completions', async (req, res) => {
       res.setHeader('Connection', 'keep-alive');
 
       let buffer = '';
+      let reasoningBuffer = '';
+      let reasoningSent = false;
+
       response.data.on('data', (chunk) => {
         buffer += chunk.toString();
         const lines = buffer.split('\n');
         buffer = lines.pop() || '';
+
         lines.forEach(line => {
-          if (line.startsWith('data: ')) {
-            if (line.includes('[DONE]')) { res.write(line + '\n'); return; }
-            try {
-              const data = JSON.parse(line.slice(6));
-              if (data.choices?.[0]?.delta) {
-                const content = data.choices[0].delta.content || '';
-                delete data.choices[0].delta.reasoning_content;
-                data.choices[0].delta.content = content;
+          if (!line.startsWith('data: ')) return;
+          if (line.includes('[DONE]')) { res.write(line + '\n'); return; }
+
+          try {
+            const data = JSON.parse(line.slice(6));
+            if (data.choices?.[0]?.delta) {
+              const reasoning = data.choices[0].delta.reasoning_content || '';
+              const content = data.choices[0].delta.content || '';
+
+              delete data.choices[0].delta.reasoning_content;
+
+              if (SHOW_REASONING && reasoning) {
+                reasoningBuffer += reasoning;
+                data.choices[0].delta.content = '';
+                res.write(`data: ${JSON.stringify(data)}\n\n`);
+                return;
               }
+
+              if (SHOW_REASONING && content && !reasoningSent && reasoningBuffer) {
+                const thinkBlock = `<think>${reasoningBuffer}</think>\n\n${content}`;
+                data.choices[0].delta.content = thinkBlock;
+                reasoningSent = true;
+                reasoningBuffer = '';
+                res.write(`data: ${JSON.stringify(data)}\n\n`);
+                return;
+              }
+
+              data.choices[0].delta.content = content;
               res.write(`data: ${JSON.stringify(data)}\n\n`);
-            } catch (e) { res.write(line + '\n'); }
-          }
+            }
+          } catch (e) { res.write(line + '\n'); }
         });
       });
+
       response.data.on('end', () => res.end());
       response.data.on('error', () => res.end());
+
     } else {
+      let fullContent = response.data.choices[0]?.message?.content || '';
+      const reasoning = response.data.choices[0]?.message?.reasoning_content || '';
+
+      if (SHOW_REASONING && reasoning) {
+        fullContent = `<think>${reasoning}</think>\n\n${fullContent}`;
+      }
+
       const openaiResponse = {
         id: `chatcmpl-${Date.now()}`,
         object: 'chat.completion',
         created: Math.floor(Date.now() / 1000),
         model: model,
-        choices: response.data.choices.map(choice => ({
-          index: choice.index,
-          message: { role: choice.message.role, content: choice.message?.content || '' },
-          finish_reason: choice.finish_reason
-        })),
+        choices: [{
+          index: 0,
+          message: { role: 'assistant', content: fullContent },
+          finish_reason: response.data.choices[0]?.finish_reason
+        }],
         usage: response.data.usage || { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 }
       };
       res.json(openaiResponse);
     }
+
   } catch (error) {
     res.status(error.response?.status || 500).json({ error: { message: error.message || 'Internal server error', type: 'invalid_request_error', code: error.response?.status || 500 } });
   }
