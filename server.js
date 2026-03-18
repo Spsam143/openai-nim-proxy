@@ -13,7 +13,7 @@ const NIM_API_BASE = process.env.NIM_API_BASE || 'https://integrate.api.nvidia.c
 const NIM_API_KEY = process.env.NIM_API_KEY;
 
 const SHOW_REASONING = true;
-const ENABLE_THINKING_MODE = false;
+const ENABLE_THINKING_MODE = true;
 
 const MODEL_MAPPING = {
   'gpt-4o':           'deepseek-ai/deepseek-v3-1',
