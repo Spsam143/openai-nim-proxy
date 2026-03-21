@@ -25,7 +25,7 @@ const MODEL_MAPPING = {
   'claude-3-haiku':   'moonshotai/kimi-k2-thinking',
   'claude-3-opus':    'mistral-ai/mistral-large-3-675b-instruct-2512',
   'claude-3-sonnet':  'minimaxai/minimax-m2.5',
-  'gemini-pro':       'z-ai/glm-5',
+  'gemini-pro':       'z-ai/glm5',
   'gemini-pro-vision':'z-ai/glm4.7'
 };
 
