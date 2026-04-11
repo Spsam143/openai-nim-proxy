@@ -20,7 +20,7 @@ const MODEL_MAPPING = {
   'gpt-4':            'deepseek-ai/deepseek-r1',
   'gpt-4-turbo':      'deepseek-ai/deepseek-v3-1-instruct',
   'gpt-4-32k':        'deepseek-ai/deepseek-v3.2',
-  'gpt-3.5-turbo-16k':'nvidia/nemotron-3-super-120b-a12b',
+  'gpt-3.5-turbo-16k':'google/gemma-4-31b-it',
   'gpt-3.5-turbo':    'moonshotai/kimi-k2.5',
   'claude-3-haiku':   'moonshotai/kimi-k2-thinking',
   'claude-3-opus':    'mistral-ai/mistral-large-3-675b-instruct-2512',
