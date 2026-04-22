@@ -14,27 +14,50 @@ const NIM_API_KEY = process.env.NIM_API_KEY;
 
 const SHOW_REASONING = true;
 const ENABLE_THINKING_MODE = true;
+const MAX_MESSAGES = 20;
+const MAX_TOKENS = 4096;
 
 const MODEL_MAPPING = {
-  'gpt-4o':            'deepseek-ai/deepseek-v3-1',
+  'gpt-4o':            'deepseek-ai/deepseek-v3-0324',
   'gpt-4':             'deepseek-ai/deepseek-r1',
-  'gpt-4-turbo':       'deepseek-ai/deepseek-v3-1',
-  'gpt-4-32k':         'deepseek-ai/deepseek-v3-1',
-  'gpt-3.5-turbo-16k': 'google/gemma-4-31b-it',
-  'gpt-3.5-turbo':     'moonshotai/kimi-k2.5',
-  'claude-3-haiku':    'moonshotai/kimi-k2.5',
-  'claude-3-opus':     'mistral-ai/mistral-large-3-675b-instruct-2512',
+  'gpt-4-turbo':       'deepseek-ai/deepseek-v3-0324',
+  'gpt-4-32k':         'deepseek-ai/deepseek-v3-0324',
+  'gpt-3.5-turbo-16k': 'google/gemma-4-27b-it',
+  'gpt-3.5-turbo':     'google/gemma-4-27b-it',
+  'claude-3-haiku':    'google/gemma-4-27b-it',
+  'claude-3-opus':     'meta/llama-4-maverick-17b-128e-instruct',
   'claude-3-sonnet':   'minimaxai/minimax-m2.5',
   'gemini-pro':        'z-ai/glm-5.1',
   'gemini-pro-vision': 'z-ai/glm4.7'
 };
 
+function truncateMessages(messages) {
+  if (!messages || messages.length === 0) return messages;
+  if (messages.length <= MAX_MESSAGES) return messages;
+  // Always keep system prompt (index 0) + last (MAX_MESSAGES - 1) messages
+  const systemMsg = messages[0].role === 'system' ? [messages[0]] : [];
+  const rest = messages.slice(-(MAX_MESSAGES - systemMsg.length));
+  return [...systemMsg, ...rest];
+}
+
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', service: 'OpenAI to NVIDIA NIM Proxy', reasoning_display: SHOW_REASONING, thinking_mode: ENABLE_THINKING_MODE });
+  res.json({
+    status: 'ok',
+    service: 'OpenAI to NVIDIA NIM Proxy',
+    reasoning_display: SHOW_REASONING,
+    thinking_mode: ENABLE_THINKING_MODE,
+    max_messages: MAX_MESSAGES,
+    max_tokens: MAX_TOKENS
+  });
 });
 
 app.get('/v1/models', (req, res) => {
-  const models = Object.keys(MODEL_MAPPING).map(model => ({ id: model, object: 'model', created: Date.now(), owned_by: 'nvidia-nim-proxy' }));
+  const models = Object.keys(MODEL_MAPPING).map(model => ({
+    id: model,
+    object: 'model',
+    created: Date.now(),
+    owned_by: 'nvidia-nim-proxy'
+  }));
   res.json({ object: 'list', data: models });
 });
 
@@ -43,11 +66,13 @@ app.post('/v1/chat/completions', async (req, res) => {
     const { model, messages, temperature, max_tokens, stream } = req.body;
     let nimModel = MODEL_MAPPING[model] || model;
 
+    const truncatedMessages = truncateMessages(messages);
+
     const nimRequest = {
       model: nimModel,
-      messages: messages,
+      messages: truncatedMessages,
       temperature: temperature || 0.7,
-      max_tokens: max_tokens || 9024,
+      max_tokens: max_tokens || MAX_TOKENS,
       stream: stream || false
     };
 
@@ -56,7 +81,10 @@ app.post('/v1/chat/completions', async (req, res) => {
     }
 
     const response = await axios.post(`${NIM_API_BASE}/chat/completions`, nimRequest, {
-      headers: { 'Authorization': `Bearer ${NIM_API_KEY}`, 'Content-Type': 'application/json' },
+      headers: {
+        'Authorization': `Bearer ${NIM_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
       responseType: stream ? 'stream' : 'json'
     });
 
@@ -122,7 +150,11 @@ app.post('/v1/chat/completions', async (req, res) => {
         object: 'chat.completion',
         created: Math.floor(Date.now() / 1000),
         model: model,
-        choices: [{ index: 0, message: { role: 'assistant', content: fullContent }, finish_reason: response.data.choices[0]?.finish_reason }],
+        choices: [{
+          index: 0,
+          message: { role: 'assistant', content: fullContent },
+          finish_reason: response.data.choices[0]?.finish_reason
+        }],
         usage: response.data.usage || { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 }
       };
       res.json(openaiResponse);
@@ -130,18 +162,28 @@ app.post('/v1/chat/completions', async (req, res) => {
 
   } catch (error) {
     res.status(error.response?.status || 500).json({
-      error: { message: error.message || 'Internal server error', type: 'invalid_request_error', code: error.response?.status || 500 }
+      error: {
+        message: error.message || 'Internal server error',
+        type: 'invalid_request_error',
+        code: error.response?.status || 500
+      }
     });
   }
 });
 
 app.all('*', (req, res) => {
-  res.status(404).json({ error: { message: `Endpoint ${req.path} not found`, type: 'invalid_request_error', code: 404 } });
+  res.status(404).json({
+    error: {
+      message: `Endpoint ${req.path} not found`,
+      type: 'invalid_request_error',
+      code: 404
+    }
+  });
 });
 
 app.listen(PORT, () => {
   console.log(`OpenAI to NVIDIA NIM Proxy running on port ${PORT}`);
   console.log(`Health check: http://localhost:${PORT}/health`);
-  console.log(`Reasoning display: ${SHOW_REASONING ? 'ENABLED' : 'DISABLED'}`);
-  console.log(`Thinking mode: ${ENABLE_THINKING_MODE ? 'ENABLED' : 'DISABLED'}`);
+  console.log(`Max messages: ${MAX_MESSAGES} | Max tokens: ${MAX_TOKENS}`);
+  console.log(`Reasoning: ${SHOW_REASONING} | Thinking: ${ENABLE_THINKING_MODE}`);
 });
