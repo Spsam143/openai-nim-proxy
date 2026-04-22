@@ -16,17 +16,17 @@ const SHOW_REASONING = true;
 const ENABLE_THINKING_MODE = true;
 
 const MODEL_MAPPING = {
-  'gpt-4o':             'deepseek-ai/deepseek-v3-1',
-  'gpt-4':              'deepseek-ai/deepseek-r1',
-  'gpt-4-turbo':        'deepseek-ai/deepseek-v3-1',
-  'gpt-4-32k':          'deepseek-ai/deepseek-v3.1-terminus',
-  'gpt-3.5-turbo-16k':  'google/gemma-4-31b-it',
-  'gpt-3.5-turbo':      'moonshotai/kimi-k2-5',
-  'claude-3-haiku':     'moonshotai/kimi-k2-5',
-  'claude-3-opus':      'mistralai/mistral-large-3-675b-instruct-2512',
-  'claude-3-sonnet':    'minimaxai/minimax-m2.5',
-  'gemini-pro':         'z-ai/glm-5.1',
-  'gemini-pro-vision':  'z-ai/glm4_7'
+  'gpt-4o':            'deepseek-ai/deepseek-v3-1',
+  'gpt-4':             'deepseek-ai/deepseek-r1',
+  'gpt-4-turbo':       'deepseek-ai/deepseek-v3-1',
+  'gpt-4-32k':         'deepseek-ai/deepseek-v3-1',
+  'gpt-3.5-turbo-16k': 'google/gemma-4-31b-it',
+  'gpt-3.5-turbo':     'moonshotai/kimi-k2.5',
+  'claude-3-haiku':    'moonshotai/kimi-k2.5',
+  'claude-3-opus':     'mistral-ai/mistral-large-3-675b-instruct-2512',
+  'claude-3-sonnet':   'minimaxai/minimax-m2.5',
+  'gemini-pro':        'z-ai/glm-5.1',
+  'gemini-pro-vision': 'z-ai/glm4.7'
 };
 
 app.get('/health', (req, res) => {
@@ -56,10 +56,7 @@ app.post('/v1/chat/completions', async (req, res) => {
     }
 
     const response = await axios.post(`${NIM_API_BASE}/chat/completions`, nimRequest, {
-      headers: {
-        'Authorization': `Bearer ${NIM_API_KEY}`,
-        'Content-Type': 'application/json'
-      },
+      headers: { 'Authorization': `Bearer ${NIM_API_KEY}`, 'Content-Type': 'application/json' },
       responseType: stream ? 'stream' : 'json'
     });
 
@@ -76,6 +73,7 @@ app.post('/v1/chat/completions', async (req, res) => {
         buffer += chunk.toString();
         const lines = buffer.split('\n');
         buffer = lines.pop() || '';
+
         lines.forEach(line => {
           if (!line.startsWith('data: ')) return;
           if (line.includes('[DONE]')) { res.write(line + '\n'); return; }
@@ -85,34 +83,40 @@ app.post('/v1/chat/completions', async (req, res) => {
               const reasoning = data.choices[0].delta.reasoning_content || '';
               const content = data.choices[0].delta.content || '';
               delete data.choices[0].delta.reasoning_content;
+
               if (SHOW_REASONING && reasoning) {
                 reasoningBuffer += reasoning;
                 data.choices[0].delta.content = '';
                 res.write(`data: ${JSON.stringify(data)}\n\n`);
                 return;
               }
+
               if (SHOW_REASONING && content && !reasoningSent && reasoningBuffer) {
-                const thinkBlock = `${reasoningBuffer}\n\n${content}`;
-                data.choices[0].delta.content = thinkBlock;
+                data.choices[0].delta.content = `<think>${reasoningBuffer}</think>\n\n${content}`;
                 reasoningSent = true;
                 reasoningBuffer = '';
                 res.write(`data: ${JSON.stringify(data)}\n\n`);
                 return;
               }
+
               data.choices[0].delta.content = content;
               res.write(`data: ${JSON.stringify(data)}\n\n`);
             }
           } catch (e) { res.write(line + '\n'); }
         });
       });
+
       response.data.on('end', () => res.end());
       response.data.on('error', () => res.end());
+
     } else {
       let fullContent = response.data.choices[0]?.message?.content || '';
       const reasoning = response.data.choices[0]?.message?.reasoning_content || '';
+
       if (SHOW_REASONING && reasoning) {
-        fullContent = `${reasoning}\n\n${fullContent}`;
+        fullContent = `<think>${reasoning}</think>\n\n${fullContent}`;
       }
+
       const openaiResponse = {
         id: `chatcmpl-${Date.now()}`,
         object: 'chat.completion',
@@ -123,13 +127,10 @@ app.post('/v1/chat/completions', async (req, res) => {
       };
       res.json(openaiResponse);
     }
+
   } catch (error) {
     res.status(error.response?.status || 500).json({
-      error: {
-        message: error.message || 'Internal server error',
-        type: 'invalid_request_error',
-        code: error.response?.status || 500
-      }
+      error: { message: error.message || 'Internal server error', type: 'invalid_request_error', code: error.response?.status || 500 }
     });
   }
 });
